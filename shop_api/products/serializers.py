@@ -52,15 +52,18 @@ class ProductReviewsSerializer(serializers.ModelSerializer):
         return round(total_stars / len(reviews), 1)
 
 
-class CategoryValidateSerializer(serializers.Serializer):
+class CategoryValidateSerializer(serializers.ModelSerializer):
     name = serializers.CharField(min_length=1, max_length=255)
 
+    class Meta:
+        model = Category
+        fields = ('name',)
+
     def validate_name(self, name):
-        category_id = self.context.get('category_id')
         categories = Category.objects.filter(name=name)
 
-        if category_id:
-            categories = categories.exclude(id=category_id)
+        if self.instance:
+            categories = categories.exclude(id=self.instance.id)
 
         if categories.exists():
             raise serializers.ValidationError('Category already exists!')
@@ -68,7 +71,7 @@ class CategoryValidateSerializer(serializers.Serializer):
         return name
 
 
-class ProductValidateSerializer(serializers.Serializer):
+class ProductValidateSerializer(serializers.ModelSerializer):
     title = serializers.CharField(min_length=1, max_length=255)
     description = serializers.CharField(
         required=False,
@@ -83,6 +86,15 @@ class ProductValidateSerializer(serializers.Serializer):
     )
     category_id = serializers.IntegerField()
 
+    class Meta:
+        model = Product
+        fields = (
+            'title',
+            'description',
+            'price',
+            'category_id',
+        )
+
     def validate_category_id(self, category_id):
         try:
             Category.objects.get(id=category_id)
@@ -92,7 +104,7 @@ class ProductValidateSerializer(serializers.Serializer):
         return category_id
 
 
-class ReviewValidateSerializer(serializers.Serializer):
+class ReviewValidateSerializer(serializers.ModelSerializer):
     text = serializers.CharField(min_length=1)
     product_id = serializers.IntegerField()
     stars = serializers.IntegerField(
@@ -100,6 +112,10 @@ class ReviewValidateSerializer(serializers.Serializer):
         max_value=5,
         default=5
     )
+
+    class Meta:
+        model = Review
+        fields = ('text', 'product_id', 'stars')
 
     def validate_product_id(self, product_id):
         try:
